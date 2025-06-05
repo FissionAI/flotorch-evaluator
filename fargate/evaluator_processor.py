@@ -167,8 +167,9 @@ class EvaluatorProcessor(BaseFargateTaskProcessor):
                 update_data = {'eval_metrics': experiment_eval_metrics}
                 if self.config_data:
                     payload = format_eval_metrics_to_metric_payloads(update_data)
-                    for record in payload:
-                        storage_provider.write(config_base_url + config_routes.get("metrics", ""), record, config_headers)
+                    end_point = config_routes.get("metrics", "")
+                    eval_metrics_url = f"{config_base_url}{end_point}?projectUid={execution_id}&experimentUid={experiment_id}"
+                    storage_provider.write(eval_metrics_url, payload, config_headers)
                 else:
                     db_experiment.update(
                         key={'id': experiment_id},
@@ -190,8 +191,6 @@ def format_eval_metrics_to_metric_payloads(data: Dict[str, Any]) -> List[Dict[st
         A list of dictionaries, where each dictionary conforms to the MetricPayload interface:
     """
     metric_payloads: List[Dict[str, Any]] = []
-    project_uid = data.get('id')
-    experiment_uid = data.get('execution_id')
     eval_metrics = data.get('eval_metrics', {})
 
     for metric_name, metric_value in eval_metrics.items():
@@ -203,8 +202,6 @@ def format_eval_metrics_to_metric_payloads(data: Dict[str, Any]) -> List[Dict[st
             metric_type = "string"
 
         payload: Dict[str, Any] = {
-            "projectUid": project_uid,
-            "experimentUid": experiment_uid,
             "name": metric_name,
             "type": metric_type,
             "value": str(metric_value)
